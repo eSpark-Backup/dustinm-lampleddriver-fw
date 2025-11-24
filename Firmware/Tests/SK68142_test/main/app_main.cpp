@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <inttypes.h>
+#include <cmath>
 #include "sdkconfig.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -20,7 +21,8 @@
 extern "C" {
 #endif
 
-#define LED_RING
+#define LED_RING_V2
+// #define LED_RING
 // #define LED_TRAIL
 // #define ANDROID_EFFECT
 
@@ -60,7 +62,7 @@ void print_chip_info(void)
 
 #define BASE_COLOR   0x00FF00
 #define BACK_COLOR   0x000000
-#define SPEED_DELAY  30         // ms per frame
+#define SPEED_DELAY  60         // ms per frame
 
 void android_effect()
 {
@@ -119,6 +121,8 @@ void android_effect()
 }
 #endif // ANDROID_EFFECT
 
+void led_task(void *pvParameters);
+
 void app_main(void)
 {
     print_chip_info();
@@ -126,7 +130,18 @@ void app_main(void)
 
     ledstrip.begin(GPIO_NUM_8, ledCount); // pin, number of leds
 
-    int head = 0;
+    int head = 11;
+
+#ifdef LED_RING_V2
+    xTaskCreate(
+        led_task,          // Task function
+        "LED_Task",        // Task name
+        2048,              // Stack size (bytes or words depending on port)
+        NULL,              // Parameter
+        5,                 // Priority
+        NULL               // Task handle (not needed)
+    );
+#endif
 
 #ifdef LED_RING
     while (1)
@@ -182,6 +197,39 @@ void app_main(void)
 
 }
 
+#ifdef LED_RING_V2
+#define LED_FPS          60    
+#define FRAME_TIME_MS   (1000 / LED_FPS)  // ~30 FPS
+#define LED_SPEED_LPS     24
+int head = 0;
+int ledCount = NUM_LEDS;
+
+void led_task(void *pvParameters)
+{
+    TickType_t last_wake = xTaskGetTickCount();
+    uint32_t start_time = xTaskGetTickCount();
+
+    while (1)
+    {
+        uint32_t elapsed_ms = (xTaskGetTickCount() - start_time) * portTICK_PERIOD_MS;
+
+        float pos = fmodf((elapsed_ms / 1000.0f) * LED_SPEED_LPS, (float)ledCount);
+
+        int head_i = (int)pos;
+        int prev_i = (head_i == 0) ? (ledCount - 1) : (head_i - 1);
+
+        for (int i = 0; i < ledCount; i++) {
+            ledstrip.color32(i, ledstrip.getcolor(0, 0, 0), 0);
+        }
+
+        ledstrip.color32(head_i, ledstrip.getcolor(0, 255, 0), 100);
+
+        ledstrip.show();
+
+        vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(FRAME_TIME_MS));
+    }
+}
+#endif
 
 #ifdef __cplusplus
 }
