@@ -12,9 +12,12 @@ list(APPEND COMPONENT_SRCS ${SRC_B_FILES})
 file(GLOB SRC_C_FILES "magnetic_encoder_manager/*.c" "magnetic_encoder_manager/*.cpp")
 list(APPEND COMPONENT_SRCS ${SRC_B_FILES})
 
+file(GLOB SRC_D_FILES "mt6701/*.c" "mt6701/*.cpp")
+list(APPEND COMPONENT_SRCS ${SRC_D_FILES})
+
 # Register the component with ESP-IDF
 idf_component_register(
     SRCS ${COMPONENT_SRCS}
-    INCLUDE_DIRS "." "status_led_manager" "ambient_light_manager" "magnetic_encoder_manager" # Add all necessary include directories
+    INCLUDE_DIRS "." "status_led_manager" "ambient_light_manager" "magnetic_encoder_manager" "mt6701" # Add all necessary include directories
     # REQUIRES other_component_name # Add any required components here
 )

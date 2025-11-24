@@ -13,14 +13,18 @@
 #include "esp_flash.h"
 #include "esp_system.h"
 #include "esp_timer.h"
+#include "esp_log.h"
 
 #include "status_led_manager/SK6812_RGB.hpp"
 #include "ambient_light_manager/ambient_light_manager.h"
 #include "magnetic_encoder_manager/mt6701.hpp"
+#include "mt6701/mt6701_sensor.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+MT6701Sensor encoder = MT6701Sensor();
 
 void print_chip_info(void)
 {
@@ -55,10 +59,15 @@ void app_main(void)
 {
     print_chip_info();
 
-    status_led_manager_init();
-    ambient_sensor_init();
-    magnetic_encoder_init();
-
+    // status_led_manager_init();
+    // ambient_sensor_init();
+    // magnetic_encoder_init();
+    encoder.init();
+    encoder.update();
+    while(1) {
+        ESP_LOGI("Main", " Motor Angle : %.2f", encoder.getSensorAngle());
+        vTaskDelay(10/portTICK_PERIOD_MS);
+    }
 }
 
 
