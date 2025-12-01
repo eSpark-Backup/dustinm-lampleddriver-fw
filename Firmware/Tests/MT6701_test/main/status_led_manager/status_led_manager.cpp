@@ -1,6 +1,9 @@
 #include "SK6812_RGB.hpp"
 #include "../ambient_light_manager/ambient_light_manager.h"
 #include "esp_timer.h"
+#include "mt6701/mt6701_sensor.h"
+#include "esp_log.h"
+
 
 // #define LED_RING
 #define LED_TRAIL
@@ -8,7 +11,7 @@
 
 #define NUM_LEDS     24
 
-
+MT6701Sensor encoder = MT6701Sensor();
 sk ledstrip;
 
 #ifdef ANDROID_EFFECT
@@ -79,6 +82,8 @@ void status_led_manager_task(void *pvParameters)
 {
     const int ledCount = NUM_LEDS;
     int head = 0;
+    int prev = 0;
+
     while (1)
     {
         uint8_t lux_brightness = get_brightness_from_lux(get_average_lux());
@@ -103,21 +108,26 @@ void status_led_manager_task(void *pvParameters)
 #ifdef LED_TRAIL
         // Define the fade steps as percentages of head brightness
         const int fadeSteps[6] = {100, 80, 60, 40, 20, 0}; // head to tail
+            float encoderValue = encoder.getSensorAngle();  // 0-6
+            // float encoderValue = 3.0;  // 0-6
+            int index = ((float)encoderValue * 4);          // map 0-6 -> 0-24
+            // int index = (encoderValue);          // map 0-6 -> 0-24
 
-        for (int t = 0; t < 6; t++) // tail length = 5 LEDs + head
-        {
-            int index = (head - t + ledCount) % ledCount; // wrap around ring
-            int brightness = lux_brightness * fadeSteps[t] / 100;
-
+            // Turn off previous LED
+            for (int u = 0; u < 24; u++){
+                ledstrip.color(u, 0, 0, 0, 0);
+            } // tail length = 5 LEDs + head
+            ESP_LOGI("LED", "%f encoder ", encoderValue);
+            // Turn on current LED
             ledstrip.color(index,
-                        255 * brightness / 100,  // red channel
+                        255 * lux_brightness / 100,  // red
                         0,
                         0,
-                        brightness);             // brightness parameter
-        }
+                        lux_brightness);
+
+            prev = index;            
 
         ledstrip.show();
-        head = (head + 1) % ledCount;
 
         vTaskDelay(30 / portTICK_PERIOD_MS); // speed control
 #endif
@@ -133,6 +143,8 @@ void status_led_manager_init(void)
 {
     ledstrip.begin(GPIO_NUM_8, NUM_LEDS);
     ledstrip.setbrightness(50); // Set initial brightness to 50%
+    encoder.init();
+    encoder.update();    
 
     // Create the status LED manager task
     xTaskCreate(status_led_manager_task, "status_led_manager_task", 2048, NULL, 5, NULL);

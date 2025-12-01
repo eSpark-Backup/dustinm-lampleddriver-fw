@@ -24,7 +24,6 @@
 extern "C" {
 #endif
 
-MT6701Sensor encoder = MT6701Sensor();
 
 void print_chip_info(void)
 {
@@ -59,15 +58,15 @@ void app_main(void)
 {
     print_chip_info();
 
-    // status_led_manager_init();
+    status_led_manager_init();
     // ambient_sensor_init();
     // magnetic_encoder_init();
-    encoder.init();
-    encoder.update();
-    while(1) {
-        ESP_LOGI("Main", " Motor Angle : %.2f", encoder.getSensorAngle());
-        vTaskDelay(10/portTICK_PERIOD_MS);
-    }
+    // encoder.init();
+    // encoder.update();
+    // while(1) {
+    //     ESP_LOGI("Main", " Motor Angle : %.2f", encoder.getSensorAngle());
+    //     vTaskDelay(10/portTICK_PERIOD_MS);
+    // }
 }
 
 
